@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LIONS 2026 — Standings</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#121829; --panel2:#182137; --line:#26314f;
+    --txt:#e8edf7; --muted:#8b97b5; --accent:#c8a24a; --accent2:#0b6cff;
+    --win:#3ecf8e; --loss:#ff6b6b; --gold:#f5c542;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#080b14,#0a0e1a 240px);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding-bottom:60px}
+  header{padding:26px 20px 16px;text-align:center;border-bottom:1px solid var(--line);position:relative}
+  h1{margin:0;font-size:34px;letter-spacing:6px;font-weight:800;
+    background:linear-gradient(90deg,var(--accent),#f0d896,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px;letter-spacing:1px}
+  .bar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:14px}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+    padding:8px 14px;font-size:13px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--accent);color:#fff}
+  button.primary{background:var(--accent2);border-color:var(--accent2)}
+  button.primary:hover{filter:brightness(1.1)}
+  .status{color:var(--muted);font-size:12px}
+  .wrap{max-width:1080px;margin:22px auto;padding:0 16px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:12px;overflow:hidden}
+  th,td{padding:12px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:var(--panel2);color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+  tr.player-row{cursor:pointer;transition:.12s}
+  tr.player-row:hover{background:var(--panel2)}
+  .rank{font-weight:800;font-size:16px;width:38px;color:var(--muted)}
+  .rank.r1{color:#f5c542}.rank.r2{color:#c9d3e6}.rank.r3{color:#cd8b52}
+  .pname{font-weight:700;font-size:16px}
+  .pts{font-weight:800;font-size:20px;color:var(--accent);text-align:right}
+  .rec{color:var(--muted);font-variant-numeric:tabular-nums}
+  .chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;
+    padding:2px 9px;font-size:11px;margin:2px 3px 0 0;color:var(--muted)}
+  .chip .w{color:var(--win)} .chip .l{color:var(--muted)}
+  .detail{background:#0d1322}
+  .detail td{padding:0}
+  .detail-inner{padding:14px 18px 18px}
+  .teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:6px}
+  .teamcard{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:9px}
+  .teamcard img{width:30px;height:30px}
+  .teamcard .tn{font-weight:600;font-size:13px}
+  .teamcard .tr{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .teamcard .tp{margin-left:auto;font-weight:700;color:var(--accent)}
+  .tag{font-size:9px;text-transform:uppercase;letter-spacing:.5px;background:#2a2140;color:#c9a2ff;
+    border-radius:4px;padding:1px 5px;margin-left:6px}
+  .breakdown{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+  .breakdown b{color:var(--txt)}
+  .sectionttl{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 4px}
+  dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:14px;
+    max-width:640px;width:92%;padding:0}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  .dlg-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .dlg-h h3{margin:0;font-size:17px}
+  .dlg-b{padding:18px 20px;max-height:70vh;overflow:auto}
+  .fld{margin-bottom:14px}
+  .fld label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+  select,input[type=text]{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+    border-radius:7px;padding:8px 10px;font-size:13px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .msblock{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:10px;background:var(--panel2)}
+  .msblock .mn{font-weight:700;margin-bottom:8px;font-size:13px}
+  .dlg-f{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+  .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px}
+  .err{background:#3a1620;border:1px solid #6b2432;color:#ffb3bd;padding:10px 14px;border-radius:8px;
+    font-size:13px;margin:0 auto 14px;max-width:1080px}
+  .legend{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.6}
+  .loading{text-align:center;color:var(--muted);padding:40px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:s 0.7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  @media(max-width:640px){th.hide-m,td.hide-m{display:none}h1{font-size:26px;letter-spacing:3px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦁 LIONS 2026</h1>
+  <div class="sub">NFL SURVIVOR-DRAFT LEAGUE · LIVE STANDINGS</div>
+  <div class="bar">
+    <button class="primary" id="refreshBtn" onclick="loadAll()">↻ Refresh Records</button>
+    <button onclick="openAdmin()">⚙ Bonuses &amp; Midseason</button>
+    <span class="status" id="status"></span>
+  </div>
+  <div class="legend">
+    +1 win · +2/playoff win · +3 SB berth · +5 SB win · +1 first coach fired · +2 MVP team · +5 hottest QB (vote)
+  </div>
+</header>
+
+<div id="errbox"></div>
+
+<div class="wrap">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th class="rank">#</th>
+        <th>Player</th>
+        <th class="hide-m">Teams</th>
+        <th class="hide-m">Record</th>
+        <th style="text-align:right">Points</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="5" class="loading"><span class="spin"></span>Loading live NFL records…</td></tr>
+    </tbody>
+  </table>
+  <div class="legend" id="footnote" style="margin-top:14px"></div>
+</div>
+
+<!-- Admin dialog -->
+<dialog id="admin">
+  <div class="dlg-h"><h3>Bonuses &amp; Midseason Draft</h3><button onclick="admin.close()">✕</button></div>
+  <div class="dlg-b">
+    <div class="sectionttl">Season-long bonuses</div>
+    <div class="fld">
+      <label>First team to fire head coach (+1)</label>
+      <select id="b_coach"></select>
+    </div>
+    <div class="fld">
+      <label>Team with league MVP (+2)</label>
+      <select id="b_mvp"></select>
+    </div>
+    <div class="fld">
+      <label>Hottest QB — league vote, assign to a PLAYER (+5)</label>
+      <select id="b_qb"></select>
+    </div>
+
+    <div class="sectionttl">Midseason draft (Week 9) — 3 new teams per player</div>
+    <p class="note">Enter these after the Week 9 draft. Wins for midseason teams count <b>only from Week 10 onward</b> (per league rules). Playoff wins &amp; Super Bowl are auto-detected from the schedule for every team a player owns.</p>
+    <div id="msContainer"></div>
+  </div>
+  <div class="dlg-f">
+    <button onclick="admin.close()">Cancel</button>
+    <button class="primary" onclick="saveAdmin()">Save</button>
+  </div>
+</dialog>
+
+<script>
+/* ============================================================
+   LIONS 2026 — config
+   ============================================================ */
+const MIDSEASON_AFTER_WEEK = 9;   // midseason teams count wins in weeks > this
+const AUTO_REFRESH_MIN = 15;      // auto-refresh interval (minutes)
+
+// ESPN abbr -> full name
+const TEAMS = {
+  ARI:"Cardinals", ATL:"Falcons", BAL:"Ravens", BUF:"Bills", CAR:"Panthers",
+  CHI:"Bears", CIN:"Bengals", CLE:"Browns", DAL:"Cowboys", DEN:"Broncos",
+  DET:"Lions", GB:"Packers", HOU:"Texans", IND:"Colts", JAX:"Jaguars",
+  KC:"Chiefs", LV:"Raiders", LAC:"Chargers", LAR:"Rams", MIA:"Dolphins",
+  MIN:"Vikings", NE:"Patriots", NO:"Saints", NYG:"Giants", NYJ:"Jets",
+  PHI:"Eagles", PIT:"Steelers", SF:"49ers", SEA:"Seahawks", TB:"Buccaneers",
+  TEN:"Titans", WSH:"Commanders"
+};
+const LOGO = a => `https://a.espncdn.com/i/teamlogos/nfl/500/${a.toLowerCase()}.png`;
+
+// Initial draft (from the draft table). Player -> 3 ESPN abbrs.
+const PLAYERS = [
+  { name:"Fleish",  initial:["BUF","TB","PIT"] },
+  { name:"Jakub",   initial:["SEA","ATL","NYG"] },
+  { name:"Ryan",    initial:["LAR","MIN","IND"] },
+  { name:"Wolf",    initial:["BAL","KC","CAR"] },
+  { name:"Mittman", initial:["DEN","DAL","LV"] },
+  { name:"Swid",    initial:["PHI","HOU","NYJ"] },
+  { name:"Spence",  initial:["SF","JAX","WSH"] },
+  { name:"Jake",    initial:["GB","NE","NO"] },
+  { name:"Andy",    initial:["CHI","LAC","ARI"] },
+  { name:"James",   initial:["DET","CIN","TEN"] },
+];
+
+/* ============================================================
+   Persistent admin state (localStorage)
+   ============================================================ */
+const LS_KEY = "lions2026";
+const defaultState = () => ({
+  coachAbbr:"", mvpAbbr:"", qbPlayer:"",
+  midseason:{}          // playerName -> [abbr,abbr,abbr]
+});
+let state = load();
+function load(){ try{return Object.assign(defaultState(),JSON.parse(localStorage.getItem(LS_KEY)||"{}"));}catch{return defaultState();} }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+/* ============================================================
+   Data fetch — one schedule per unique team, computed client-side
+   ============================================================ */
+let teamData = {};   // abbr -> {regWins,regLoss,regTie, winsAfterCut, playoffWins, sbBerth, sbWin, games:[]}
+
+function ownedAbbrs(){
+  const s=new Set();
+  PLAYERS.forEach(p=>{
+    p.initial.forEach(a=>s.add(a));
+    (state.midseason[p.name]||[]).forEach(a=>a&&s.add(a));
+  });
+  return [...s];
+}
+
+async function fetchTeam(abbr){
+  const url=`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${abbr}/schedule`;
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`${abbr} ${r.status}`);
+  const d=await r.json();
+  const out={regWins:0,regLoss:0,regTie:0,winsAfterCut:0,playoffWins:0,sbBerth:false,sbWin:false};
+  for(const ev of (d.events||[])){
+    const stype=ev.seasonType?.type;                // 2=reg, 3=post
+    const wk=ev.week?.number||0;
+    const comp=(ev.competitions||[])[0]; if(!comp) continue;
+    const me=(comp.competitors||[]).find(c=>c.team?.abbreviation===abbr);
+    if(!me) continue;
+    const st=comp.status?.type?.state;              // 'post' when final
+    if(st!=='post') continue;                        // only count finished games
+    const won=me.winner===true;
+    const tie=comp.status?.type?.completed && !comp.competitors.some(c=>c.winner===true);
+    const name=(ev.name||"")+ " " +(comp.notes?.map(n=>n.headline).join(" ")||"");
+    const isSB=/super bowl/i.test(name);
+    if(stype===2){
+      if(won) out.regWins++; else if(tie) out.regTie++; else out.regLoss++;
+      if(won && wk>MIDSEASON_AFTER_WEEK) out.winsAfterCut++;
+    } else if(stype===3){
+      if(isSB) out.sbBerth=true;
+      if(won){ out.playoffWins++; if(isSB) out.sbWin=true; }
+    }
+  }
+  return out;
+}
+
+async function loadAll(){
+  const btn=document.getElementById('refreshBtn'); btn.disabled=true;
+  setStatus('<span class="spin"></span>Fetching live records…');
+  clearErr();
+  try{
+    const abbrs=ownedAbbrs();
+    const results=await Promise.allSettled(abbrs.map(a=>fetchTeam(a)));
+    const failed=[];
+    results.forEach((res,i)=>{
+      if(res.status==='fulfilled') teamData[abbrs[i]]=res.value;
+      else failed.push(abbrs[i]);
+    });
+    if(failed.length) showErr(`Couldn't load: ${failed.join(", ")}. They'll show as 0-0 until the next refresh.`);
+    render();
+    setStatus(`Updated ${new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`);
+  }catch(e){
+    showErr("Fetch failed: "+e.message);
+    setStatus("Update failed");
+  }finally{ btn.disabled=false; }
+}
+
+/* ============================================================
+   Scoring
+   ============================================================ */
+function teamPoints(abbr, isMidseason){
+  const t=teamData[abbr]||{};
+  const regWinPts = isMidseason ? (t.winsAfterCut||0) : (t.regWins||0);
+  const playoffPts=(t.playoffWins||0)*2;
+  const sbPts=(t.sbBerth?3:0)+(t.sbWin?5:0);
+  return {regWinPts, playoffPts, sbPts, total:regWinPts+playoffPts+sbPts};
+}
+
+function computePlayer(p){
+  const teams=[];
+  p.initial.forEach(a=>teams.push({abbr:a,mid:false}));
+  (state.midseason[p.name]||[]).forEach(a=>{ if(a) teams.push({abbr:a,mid:true}); });
+
+  let reg=0,po=0,sb=0;
+  const teamRows=teams.map(t=>{
+    const pts=teamPoints(t.abbr,t.mid);
+    reg+=pts.regWinPts; po+=pts.playoffPts; sb+=pts.sbPts;
+    const td=teamData[t.abbr]||{};
+    return {...t, ...pts, rec:`${td.regWins||0}-${td.regLoss||0}${td.regTie?('-'+td.regTie):''}`};
+  });
+
+  // bonuses
+  let bonus=0; const bnotes=[];
+  if(state.coachAbbr && teams.some(t=>t.abbr===state.coachAbbr)){ bonus+=1; bnotes.push("Coach fired +1"); }
+  if(state.mvpAbbr   && teams.some(t=>t.abbr===state.mvpAbbr)){   bonus+=2; bnotes.push("MVP +2"); }
+  if(state.qbPlayer===p.name){ bonus+=5; bnotes.push("Hottest QB +5"); }
+
+  return { name:p.name, teamRows, reg, po, sb, bonus, bnotes,
+           total: reg+po+sb+bonus,
+           poWins: teamRows.reduce((n,t)=>n+((teamData[t.abbr]||{}).playoffWins||0),0),
+           bestTeam: Math.max(0,...teamRows.map(t=>t.total)) };
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+function render(){
+  const rows=PLAYERS.map(computePlayer);
+  // sort: total desc, then playoff wins, then best single team
+  rows.sort((a,b)=> b.total-a.total || b.poWins-a.poWins || b.bestTeam-a.bestTeam || a.name.localeCompare(b.name));
+
+  const tb=document.getElementById('tbody'); tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const rank=i+1;
+    const tr=document.createElement('tr');
+    tr.className='player-row';
+    tr.onclick=()=>toggle(i);
+    const chips=r.teamRows.map(t=>{
+      const td=teamData[t.abbr]||{};
+      return `<span class="chip"><span class="w">${TEAMS[t.abbr]||t.abbr}</span> <span class="l">${td.regWins||0}-${td.regLoss||0}</span>${t.mid?' ·<span style="color:#c9a2ff">M</span>':''}</span>`;
+    }).join('');
+    const recTot=r.teamRows.reduce((a,t)=>{const td=teamData[t.abbr]||{};a.w+=td.regWins||0;a.l+=td.regLoss||0;return a;},{w:0,l:0});
+    tr.innerHTML=`
+      <td class="rank r${rank}">${rank}</td>
+      <td><span class="pname">${r.name}</span><div class="hide-m" style="margin-top:4px">${chips}</div></td>
+      <td class="hide-m">${chips}</td>
+      <td class="hide-m rec">${recTot.w}-${recTot.l}</td>
+      <td class="pts">${r.total}</td>`;
+    tb.appendChild(tr);
+
+    const dt=document.createElement('tr'); dt.className='detail'; dt.style.display='none'; dt.id='det'+i;
+    dt.innerHTML=`<td colspan="5"><div class="detail-inner">
+      <div class="teamgrid">${r.teamRows.map(t=>`
+        <div class="teamcard">
+          <img src="${LOGO(t.abbr)}" alt="" onerror="this.style.visibility='hidden'"/>
+          <div>
+            <div class="tn">${TEAMS[t.abbr]||t.abbr}${t.mid?'<span class="tag">mid</span>':''}</div>
+            <div class="tr">${t.rec}${t.mid?` · ${(teamData[t.abbr]||{}).winsAfterCut||0} W after wk${MIDSEASON_AFTER_WEEK}`:''}${(teamData[t.abbr]||{}).playoffWins?` · ${(teamData[t.abbr]||{}).playoffWins} PO W`:''}</div>
+          </div>
+          <div class="tp">${t.total}</div>
+        </div>`).join('')}
+      </div>
+      <div class="breakdown">
+        <span>Reg wins: <b>${r.reg}</b></span>
+        <span>Playoffs: <b>${r.po}</b></span>
+        <span>Super Bowl: <b>${r.sb}</b></span>
+        <span>Bonuses: <b>${r.bonus}</b>${r.bnotes.length?` (${r.bnotes.join(", ")})`:''}</span>
+        <span style="color:var(--accent)">Total: <b>${r.total}</b></span>
+      </div>
+    </div></td>`;
+    tb.appendChild(dt);
+  });
+
+  const undrafted=Object.keys(TEAMS).filter(a=>!ownedAbbrs().includes(a));
+  document.getElementById('footnote').innerHTML=
+    `Records auto-pulled from ESPN · <b>M</b> = midseason pick (wins count from Week ${MIDSEASON_AFTER_WEEK+1}+) · Tie-breakers: playoff wins, then best single team`+
+    (undrafted.length?`<br>Undrafted (Wk 9 pool): ${undrafted.map(a=>TEAMS[a]).join(", ")}`:'');
+}
+function toggle(i){ const d=document.getElementById('det'+i); d.style.display = d.style.display==='none'?'':'none'; }
+
+/* ============================================================
+   Admin dialog
+   ============================================================ */
+const admin=document.getElementById('admin');
+function teamOptions(sel){
+  return `<option value="">— none —</option>`+Object.entries(TEAMS)
+    .sort((a,b)=>a[1].localeCompare(b[1]))
+    .map(([a,n])=>`<option value="${a}" ${a===sel?'selected':''}>${n}</option>`).join('');
+}
+function openAdmin(){
+  document.getElementById('b_coach').innerHTML=teamOptions(state.coachAbbr);
+  document.getElementById('b_mvp').innerHTML=teamOptions(state.mvpAbbr);
+  document.getElementById('b_qb').innerHTML=`<option value="">— none —</option>`+
+    PLAYERS.map(p=>`<option value="${p.name}" ${p.name===state.qbPlayer?'selected':''}>${p.name}</option>`).join('');
+  const c=document.getElementById('msContainer'); c.innerHTML='';
+  PLAYERS.forEach(p=>{
+    const ms=state.midseason[p.name]||["","",""];
+    const own=new Set(p.initial);              // can't re-pick own initial teams
+    const opts=sel=>`<option value="">—</option>`+Object.entries(TEAMS)
+      .filter(([a])=>!own.has(a))
+      .sort((a,b)=>a[1].localeCompare(b[1]))
+      .map(([a,n])=>`<option value="${a}" ${a===sel?'selected':''}>${n}</option>`).join('');
+    const div=document.createElement('div'); div.className='msblock';
+    div.innerHTML=`<div class="mn">${p.name} <span class="note">(has: ${p.initial.map(a=>TEAMS[a]).join(", ")})</span></div>
+      <div class="row3">
+        <select data-p="${p.name}" data-i="0">${opts(ms[0]||"")}</select>
+        <select data-p="${p.name}" data-i="1">${opts(ms[1]||"")}</select>
+        <select data-p="${p.name}" data-i="2">${opts(ms[2]||"")}</select>
+      </div>`;
+    c.appendChild(div);
+  });
+  admin.showModal();
+}
+function saveAdmin(){
+  state.coachAbbr=document.getElementById('b_coach').value;
+  state.mvpAbbr  =document.getElementById('b_mvp').value;
+  state.qbPlayer =document.getElementById('b_qb').value;
+  const ms={};
+  document.querySelectorAll('#msContainer select').forEach(s=>{
+    const p=s.dataset.p, i=+s.dataset.i;
+    (ms[p]=ms[p]||["","",""])[i]=s.value;
+  });
+  state.midseason=ms;
+  save(); admin.close(); loadAll();
+}
+
+/* helpers */
+function setStatus(h){document.getElementById('status').innerHTML=h;}
+function showErr(m){document.getElementById('errbox').innerHTML=`<div class="err">⚠ ${m}</div>`;}
+function clearErr(){document.getElementById('errbox').innerHTML='';}
+
+/* boot */
+loadAll();
+setInterval(loadAll, AUTO_REFRESH_MIN*60*1000);
+</script>
+</body>
+</html>
