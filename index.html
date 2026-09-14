@@ -84,7 +84,7 @@
   <div class="sub">NFL SURVIVOR-DRAFT LEAGUE · LIVE STANDINGS</div>
   <div class="bar">
     <button class="primary" id="refreshBtn" onclick="loadAll()">↻ Refresh Records</button>
-    <button onclick="openAdmin()">⚙ Bonuses &amp; Midseason</button>
+    <button id="adminBtn" onclick="openAdmin()" style="display:none">⚙ Commissioner</button>
     <span class="status" id="status"></span>
   </div>
   <div class="legend">
@@ -114,7 +114,7 @@
 
 <!-- Admin dialog -->
 <dialog id="admin">
-  <div class="dlg-h"><h3>Bonuses &amp; Midseason Draft</h3><button onclick="admin.close()">✕</button></div>
+  <div class="dlg-h"><h3>Commissioner — Bonuses &amp; Midseason</h3><button onclick="admin.close()">✕</button></div>
   <div class="dlg-b">
     <div class="sectionttl">Season-long bonuses</div>
     <div class="fld">
@@ -136,7 +136,24 @@
   </div>
   <div class="dlg-f">
     <button onclick="admin.close()">Cancel</button>
-    <button class="primary" onclick="saveAdmin()">Save</button>
+    <button class="primary" onclick="publishAdmin()">Publish updated data.json ▾</button>
+  </div>
+</dialog>
+
+<!-- Publish instructions dialog -->
+<dialog id="pub">
+  <div class="dlg-h"><h3>Publish to the league</h3><button onclick="pub.close()">✕</button></div>
+  <div class="dlg-b">
+    <p class="note">This is the new <b>data.json</b>. Download it (or copy it), drop it in your <code>lions-2026</code> repo, and push — every viewer will see it within a minute.</p>
+    <div class="fld"><textarea id="pubjson" style="width:100%;height:180px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:12px"></textarea></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" onclick="downloadJson()">⬇ Download data.json</button>
+      <button onclick="copyJson()">⧉ Copy</button>
+    </div>
+    <p class="note" style="margin-top:14px">Then in Terminal:</p>
+    <textarea readonly style="width:100%;height:70px;background:#0a0f1c;color:#9fb4d8;border:1px solid var(--line);border-radius:7px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:12px">cd ~/lions-2026
+mv ~/Downloads/data.json .   # if you downloaded it
+git commit -am "update standings" && git push</textarea>
   </div>
 </dialog>
 
@@ -174,16 +191,27 @@ const PLAYERS = [
 ];
 
 /* ============================================================
-   Persistent admin state (localStorage)
+   Global league state — single source of truth is data.json in
+   the repo. Everyone reads it; only the repo owner can push
+   changes. The commissioner edits here and publishes a new
+   data.json (download/copy -> git push).
    ============================================================ */
-const LS_KEY = "lions2026";
 const defaultState = () => ({
   coachAbbr:"", mvpAbbr:"", qbPlayer:"",
   midseason:{}          // playerName -> [abbr,abbr,abbr]
 });
-let state = load();
-function load(){ try{return Object.assign(defaultState(),JSON.parse(localStorage.getItem(LS_KEY)||"{}"));}catch{return defaultState();} }
-function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+let state = defaultState();
+
+async function loadState(){
+  try{
+    // cache-bust so pushes show up promptly
+    const r=await fetch(`data.json?t=${Date.now()}`);
+    if(r.ok) state=Object.assign(defaultState(), await r.json());
+  }catch(e){ /* fall back to defaults */ }
+}
+
+// Commissioner mode: add ?admin (or #admin) to the URL to reveal the panel.
+const ADMIN = /(\?|&|#)admin\b/.test(location.href);
 
 /* ============================================================
    Data fetch — one schedule per unique team, computed client-side
@@ -375,7 +403,8 @@ function openAdmin(){
   });
   admin.showModal();
 }
-function saveAdmin(){
+const pub=document.getElementById('pub');
+function publishAdmin(){
   state.coachAbbr=document.getElementById('b_coach').value;
   state.mvpAbbr  =document.getElementById('b_mvp').value;
   state.qbPlayer =document.getElementById('b_qb').value;
@@ -384,9 +413,20 @@ function saveAdmin(){
     const p=s.dataset.p, i=+s.dataset.i;
     (ms[p]=ms[p]||["","",""])[i]=s.value;
   });
+  // drop empty midseason entries so data.json stays clean
+  Object.keys(ms).forEach(p=>{ if(ms[p].every(x=>!x)) delete ms[p]; });
   state.midseason=ms;
-  save(); admin.close(); loadAll();
+  const json=JSON.stringify({coachAbbr:state.coachAbbr,mvpAbbr:state.mvpAbbr,qbPlayer:state.qbPlayer,midseason:state.midseason},null,2)+"\n";
+  document.getElementById('pubjson').value=json;
+  admin.close();
+  render();                 // preview the change locally right away
+  pub.showModal();
 }
+function downloadJson(){
+  const blob=new Blob([document.getElementById('pubjson').value],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='data.json'; a.click();
+}
+function copyJson(){ navigator.clipboard.writeText(document.getElementById('pubjson').value); }
 
 /* helpers */
 function setStatus(h){document.getElementById('status').innerHTML=h;}
@@ -394,8 +434,12 @@ function showErr(m){document.getElementById('errbox').innerHTML=`<div class="err
 function clearErr(){document.getElementById('errbox').innerHTML='';}
 
 /* boot */
-loadAll();
-setInterval(loadAll, AUTO_REFRESH_MIN*60*1000);
+if(ADMIN) document.getElementById('adminBtn').style.display='';
+(async ()=>{
+  await loadState();        // global settings from data.json
+  await loadAll();          // live records from ESPN
+})();
+setInterval(async ()=>{ await loadState(); await loadAll(); }, AUTO_REFRESH_MIN*60*1000);
 </script>
 </body>
 </html>
