@@ -71,6 +71,11 @@
   .err{background:#3a1620;border:1px solid #6b2432;color:#ffb3bd;padding:10px 14px;border-radius:8px;
     font-size:13px;margin:0 auto 14px;max-width:1080px}
   .legend{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.6}
+  .countdown{margin:14px auto 0;display:inline-flex;flex-direction:column;align-items:center;gap:3px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 20px}
+  .cd-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .cd-clock{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:1px}
+  .cd-clock.due{color:var(--win)}
   .loading{text-align:center;color:var(--muted);padding:40px}
   .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
     border-radius:50%;animation:s 0.7s linear infinite;vertical-align:-3px;margin-right:6px}
@@ -89,6 +94,10 @@
   </div>
   <div class="legend">
     +1 win · +2/playoff win · +3 SB berth · +5 SB win · +1 first coach fired · +2 MVP team · +5 hottest QB (vote)
+  </div>
+  <div class="countdown" id="countdown">
+    <span class="cd-label">📰 Newsletter Submission Deadline</span>
+    <span class="cd-clock" id="cdClock">--:--:--</span>
   </div>
 </header>
 
@@ -432,6 +441,35 @@ function copyJson(){ navigator.clipboard.writeText(document.getElementById('pubj
 function setStatus(h){document.getElementById('status').innerHTML=h;}
 function showErr(m){document.getElementById('errbox').innerHTML=`<div class="err">⚠ ${m}</div>`;}
 function clearErr(){document.getElementById('errbox').innerHTML='';}
+
+/* ============================================================
+   Countdown to newsletter deadline — next Sunday 12:00 PM local
+   ============================================================ */
+function nextDeadline(now){
+  const d=new Date(now);
+  d.setHours(12,0,0,0);                     // noon today
+  const day=d.getDay();                     // 0 = Sunday
+  let add=(7-day)%7;                         // days until Sunday
+  if(add===0 && now>=d.getTime()) add=7;    // it's Sun past noon -> next Sun
+  d.setDate(d.getDate()+add);
+  return d.getTime();
+}
+function tickCountdown(){
+  const el=document.getElementById('cdClock');
+  const now=Date.now();
+  let diff=nextDeadline(now)-now;
+  if(diff<=0){ el.textContent="DUE NOW"; el.classList.add('due'); return; }
+  el.classList.remove('due');
+  const day=86400000, hr=3600000, min=60000;
+  const d=Math.floor(diff/day); diff-=d*day;
+  const h=Math.floor(diff/hr);  diff-=h*hr;
+  const m=Math.floor(diff/min); diff-=m*min;
+  const s=Math.floor(diff/1000);
+  const p=n=>String(n).padStart(2,'0');
+  el.textContent=(d>0?`${d}d `:'')+`${p(h)}:${p(m)}:${p(s)}`;
+}
+tickCountdown();
+setInterval(tickCountdown,1000);
 
 /* boot */
 if(ADMIN) document.getElementById('adminBtn').style.display='';
