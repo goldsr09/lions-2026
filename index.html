@@ -34,6 +34,11 @@
   .rank{font-weight:800;font-size:16px;width:38px;color:var(--muted)}
   .rank.r1{color:#f5c542}.rank.r2{color:#c9d3e6}.rank.r3{color:#cd8b52}
   .pname{font-weight:700;font-size:16px}
+  .avatar-wrap{display:inline-block;vertical-align:middle}
+  .avatar{border-radius:50%;object-fit:cover;border:2px solid var(--line);display:inline-flex;
+    align-items:center;justify-content:center;vertical-align:middle;background:#223}
+  .av-badge{color:#fff;font-weight:800;letter-spacing:.5px}
+  .pcell{display:flex;align-items:center;gap:11px}
   .pts{font-weight:800;font-size:20px;color:var(--accent);text-align:right}
   .rec{color:var(--muted);font-variant-numeric:tabular-nums}
   .chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;
@@ -198,17 +203,33 @@ const LOGO = a => `https://a.espncdn.com/i/teamlogos/nfl/500/${a.toLowerCase()}.
 
 // Initial draft (from the draft table). Player -> 3 ESPN abbrs.
 const PLAYERS = [
-  { name:"Fleish",  initial:["BUF","TB","PIT"] },
-  { name:"Jakub",   initial:["SEA","ATL","NYG"] },
-  { name:"Ryan",    initial:["LAR","MIN","IND"] },
-  { name:"Wolf",    initial:["BAL","KC","CAR"] },
-  { name:"Mittman", initial:["DEN","DAL","LV"] },
-  { name:"Swid",    initial:["PHI","HOU","NYJ"] },
-  { name:"Spence",  initial:["SF","JAX","WSH"] },
-  { name:"Jake",    initial:["GB","NE","NO"] },
-  { name:"Andy",    initial:["CHI","LAC","ARI"] },
-  { name:"James",   initial:["DET","CIN","TEN"] },
+  { name:"Fleish",  initial:["BUF","TB","PIT"],  color:"#e0592a" },
+  { name:"Jakub",   initial:["SEA","ATL","NYG"], color:"#2a9d8f" },
+  { name:"Ryan",    initial:["LAR","MIN","IND"], color:"#5c6bc0" },
+  { name:"Wolf",    initial:["BAL","KC","CAR"],  color:"#8e44ad" },
+  { name:"Mittman", initial:["DEN","DAL","LV"],  color:"#c0392b" },
+  { name:"Swid",    initial:["PHI","HOU","NYJ"], color:"#16a085" },
+  { name:"Spence",  initial:["SF","JAX","WSH"],  color:"#d4a017" },
+  { name:"Jake",    initial:["GB","NE","NO"],    color:"#27ae60" },
+  { name:"Andy",    initial:["CHI","LAC","ARI"], color:"#2980b9" },
+  { name:"James",   initial:["DET","CIN","TEN"], color:"#7f8c8d" },
 ];
+
+/* Avatar: uses avatars/<name>.<ext> if present, else a colored initials badge.
+   Add a real photo by dropping a square image at avatars/<name>.jpg (or set
+   `photo:"avatars/wolf.jpg"` on that player above). */
+function playerConf(name){ return PLAYERS.find(p=>p.name===name)||{}; }
+function avatarHTML(name, size){
+  const p=playerConf(name);
+  const initials=name.slice(0,2).toUpperCase();
+  const badge=`<span class="avatar av-badge" style="width:${size}px;height:${size}px;background:${p.color||'#334'};font-size:${Math.round(size*0.4)}px">${initials}</span>`;
+  const src=p.photo || `avatars/${name.toLowerCase()}.jpg`;
+  // try the image; if it 404s, swap in the initials badge
+  return `<span class="avatar-wrap" style="width:${size}px;height:${size}px">`+
+    `<img class="avatar" src="${src}" alt="${name}" style="width:${size}px;height:${size}px" `+
+    `onerror="this.outerHTML=this.dataset.fallback" data-fallback='${badge.replace(/'/g,"&#39;")}'/>`+
+    `</span>`;
+}
 
 /* ============================================================
    Global league state — single source of truth is data.json in
@@ -355,7 +376,7 @@ function render(){
     const recTot=r.teamRows.reduce((a,t)=>{const td=teamData[t.abbr]||{};a.w+=td.regWins||0;a.l+=td.regLoss||0;return a;},{w:0,l:0});
     tr.innerHTML=`
       <td class="rank r${rank}">${rank}</td>
-      <td><span class="pname">${r.name}</span><div class="hide-m" style="margin-top:4px">${chips}</div></td>
+      <td><div class="pcell">${avatarHTML(r.name,40)}<div><span class="pname">${r.name}</span><div class="hide-m" style="margin-top:4px">${chips}</div></div></div></td>
       <td class="hide-m">${chips}</td>
       <td class="hide-m rec">${recTot.w}-${recTot.l}</td>
       <td class="pts">${r.total}</td>`;
