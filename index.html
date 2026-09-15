@@ -76,6 +76,8 @@
   .cd-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
   .cd-clock{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:1px}
   .cd-clock.due{color:var(--win)}
+  .cd-owner{font-size:13px;color:var(--txt);margin-top:2px}
+  .cd-owner b{color:var(--accent2)}
   .loading{text-align:center;color:var(--muted);padding:40px}
   .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
     border-radius:50%;animation:s 0.7s linear infinite;vertical-align:-3px;margin-right:6px}
@@ -98,6 +100,7 @@
   <div class="countdown" id="countdown">
     <span class="cd-label">📰 Newsletter Submission Deadline</span>
     <span class="cd-clock" id="cdClock">--:--:--</span>
+    <span class="cd-owner" id="cdOwner" style="display:none"></span>
   </div>
 </header>
 
@@ -125,6 +128,14 @@
 <dialog id="admin">
   <div class="dlg-h"><h3>Commissioner — Bonuses &amp; Midseason</h3><button onclick="admin.close()">✕</button></div>
   <div class="dlg-b">
+    <div class="sectionttl">This week's newsletter</div>
+    <div class="fld">
+      <label>Responsible for this week's newsletter</label>
+      <input type="text" id="b_news" placeholder="e.g. Fleish" list="playerlist" autocomplete="off" />
+      <datalist id="playerlist"></datalist>
+      <p class="note">Shown under the deadline countdown for everyone.</p>
+    </div>
+
     <div class="sectionttl">Season-long bonuses</div>
     <div class="fld">
       <label>First team to fire head coach (+1)</label>
@@ -207,6 +218,7 @@ const PLAYERS = [
    ============================================================ */
 const defaultState = () => ({
   coachAbbr:"", mvpAbbr:"", qbPlayer:"",
+  newsletterOwner:"",   // who's on the hook for this week's newsletter
   midseason:{}          // playerName -> [abbr,abbr,abbr]
 });
 let state = defaultState();
@@ -389,6 +401,8 @@ function teamOptions(sel){
     .map(([a,n])=>`<option value="${a}" ${a===sel?'selected':''}>${n}</option>`).join('');
 }
 function openAdmin(){
+  document.getElementById('b_news').value=state.newsletterOwner||"";
+  document.getElementById('playerlist').innerHTML=PLAYERS.map(p=>`<option value="${p.name}">`).join('');
   document.getElementById('b_coach').innerHTML=teamOptions(state.coachAbbr);
   document.getElementById('b_mvp').innerHTML=teamOptions(state.mvpAbbr);
   document.getElementById('b_qb').innerHTML=`<option value="">— none —</option>`+
@@ -414,6 +428,7 @@ function openAdmin(){
 }
 const pub=document.getElementById('pub');
 function publishAdmin(){
+  state.newsletterOwner=document.getElementById('b_news').value.trim();
   state.coachAbbr=document.getElementById('b_coach').value;
   state.mvpAbbr  =document.getElementById('b_mvp').value;
   state.qbPlayer =document.getElementById('b_qb').value;
@@ -425,10 +440,11 @@ function publishAdmin(){
   // drop empty midseason entries so data.json stays clean
   Object.keys(ms).forEach(p=>{ if(ms[p].every(x=>!x)) delete ms[p]; });
   state.midseason=ms;
-  const json=JSON.stringify({coachAbbr:state.coachAbbr,mvpAbbr:state.mvpAbbr,qbPlayer:state.qbPlayer,midseason:state.midseason},null,2)+"\n";
+  const json=JSON.stringify({newsletterOwner:state.newsletterOwner,coachAbbr:state.coachAbbr,mvpAbbr:state.mvpAbbr,qbPlayer:state.qbPlayer,midseason:state.midseason},null,2)+"\n";
   document.getElementById('pubjson').value=json;
   admin.close();
   render();                 // preview the change locally right away
+  renderOwner();
   pub.showModal();
 }
 function downloadJson(){
@@ -468,6 +484,15 @@ function tickCountdown(){
   const p=n=>String(n).padStart(2,'0');
   el.textContent=(d>0?`${d}d `:'')+`${p(h)}:${p(m)}:${p(s)}`;
 }
+function renderOwner(){
+  const el=document.getElementById('cdOwner');
+  if(state.newsletterOwner){
+    el.innerHTML=`This week: <b>${state.newsletterOwner}</b>`;
+    el.style.display='';
+  } else {
+    el.style.display='none';
+  }
+}
 tickCountdown();
 setInterval(tickCountdown,1000);
 
@@ -475,9 +500,10 @@ setInterval(tickCountdown,1000);
 if(ADMIN) document.getElementById('adminBtn').style.display='';
 (async ()=>{
   await loadState();        // global settings from data.json
+  renderOwner();
   await loadAll();          // live records from ESPN
 })();
-setInterval(async ()=>{ await loadState(); await loadAll(); }, AUTO_REFRESH_MIN*60*1000);
+setInterval(async ()=>{ await loadState(); renderOwner(); await loadAll(); }, AUTO_REFRESH_MIN*60*1000);
 </script>
 </body>
 </html>
