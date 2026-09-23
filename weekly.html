@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>LIONS 2026 — Weekly Points</title>
 <style>
@@ -159,7 +162,7 @@ function pointsForWeek(p, key){
         if(mid && g.week<=MIDSEASON_AFTER_WEEK) continue;   // midseason teams don't count pre-cut
         if(g.won){ pts+=1; detail.push(TEAMS[a]||a); }
       } else if(g.stype===3){
-        if(g.isSB){ pts+=3; detail.push((TEAMS[a]||a)+" SB berth"); }   // reaching SB
+        // win points only: playoff win +2, Super Bowl win +5 (no berth/bonus points here)
         if(g.won){ pts+= g.isSB?5:2; detail.push((TEAMS[a]||a)+(g.isSB?" won SB":" playoff W")); }
       }
     }
