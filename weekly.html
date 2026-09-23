@@ -102,6 +102,13 @@ const PLAYERS = [
 ];
 const AVA = n => `avatars/${n.toLowerCase()}.jpg`;
 
+// deterministic "random" index in [0,n) seeded by a string (stable per week)
+function seededIndex(seed, n){
+  let h=2166136261;
+  for(let i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+  return Math.abs(h)%n;
+}
+
 let state={coachAbbr:"",mvpAbbr:"",qbPlayer:"",newsletterOwner:"",midseason:{}};
 let authors=new Set();          // players who've already written a newsletter
 let games={};                   // abbr -> [{stype,week,won,tie,isSB}]
@@ -199,9 +206,16 @@ function render(){
   const rows=PLAYERS.map(p=>{ const w=pointsForWeek(p,key); return {name:p.name, pts:w.pts, detail:w.detail}; });
   rows.sort((a,b)=> a.pts-b.pts || a.name.localeCompare(b.name));   // lowest first
 
-  // on-call = lowest weekly points among players who haven't written yet
-  // (rows already sorted lowest-first, ties broken alphabetically)
-  const onCall = rows.find(r=>!authors.has(r.name)) || null;
+  // on-call = lowest weekly points among players who haven't written yet.
+  // If several eligible players tie for the lowest, randomly pick one
+  // (seeded by the week so the choice is stable, not re-rolled each render).
+  const eligible=rows.filter(r=>!authors.has(r.name));
+  let onCall=null, tied=[];
+  if(eligible.length){
+    const lowest=Math.min(...eligible.map(r=>r.pts));
+    tied=eligible.filter(r=>r.pts===lowest);
+    onCall = tied.length===1 ? tied[0] : tied[seededIndex(key, tied.length)];
+  }
 
   stage.innerHTML=`
     <div class="nav">
@@ -211,7 +225,7 @@ function render(){
     </div>
     ${onCall?`<div class="oncall">
       ${avatarBig(onCall.name)}
-      <div class="txt">On the hook for the newsletter<br><b>${onCall.name}</b> — lowest points (${onCall.pts}) who hasn't written yet</div>
+      <div class="txt">On the hook for the newsletter<br><b>${onCall.name}</b> — lowest points (${onCall.pts}) who hasn't written yet${tied.length>1?`<br><span style="color:var(--accent)">🎲 randomly picked from a ${tied.length}-way tie: ${tied.map(t=>t.name).join(", ")}</span>`:''}</div>
     </div>`:`<div class="oncall"><div class="txt">Everyone has written a newsletter — cycle complete. 🎉</div></div>`}
     <table>
       <thead><tr><th class="rank">#</th><th>Player</th><th class="hide-m">Wins this week</th><th style="text-align:right">Pts</th></tr></thead>
