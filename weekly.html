@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LIONS 2026 — Weekly Points</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#121829; --panel2:#182137; --line:#26314f;
+    --txt:#e8edf7; --muted:#8b97b5; --accent:#c8a24a; --accent2:#0b6cff; --win:#3ecf8e; --loss:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#080b14,#0a0e1a 240px);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding-bottom:60px}
+  header{padding:26px 20px 16px;text-align:center;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:34px;letter-spacing:6px;font-weight:800;
+    background:linear-gradient(90deg,var(--accent),#f0d896,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px;letter-spacing:1px}
+  .bar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:14px}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+    padding:8px 14px;font-size:13px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.35;cursor:default}
+  button.primary{background:var(--accent2);border-color:var(--accent2)}
+
+  .stage{max-width:820px;margin:24px auto 0;padding:0 16px}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .arrow{font-size:20px;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .weekpill{flex:1;text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .weekpill b{color:var(--accent);font-size:20px;display:block;margin-top:2px}
+
+  .oncall{background:var(--panel2);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;margin:6px 0 18px;
+    display:flex;align-items:center;gap:12px}
+  .oncall .ava{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex:0 0 auto}
+  .oncall .badge{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#fff;background:#334;flex:0 0 auto}
+  .oncall .txt{font-size:13px;color:var(--muted);line-height:1.4}
+  .oncall .txt b{color:var(--txt);font-size:15px}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:12px;overflow:hidden}
+  th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:var(--panel2);color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+  .rank{width:34px;color:var(--muted);font-weight:800}
+  .pcell{display:flex;align-items:center;gap:10px}
+  .pcell img,.pcell .badge{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex:0 0 auto}
+  .pcell .badge{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px;background:#334}
+  .pname{font-weight:700}
+  .wins{color:var(--muted);font-size:12px}
+  .wpts{text-align:right;font-weight:800;font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums}
+  tr.low td{background:rgba(200,162,74,.08)}
+  .wrote{font-size:9px;text-transform:uppercase;letter-spacing:.5px;background:#203a2a;color:var(--win);border-radius:4px;padding:1px 5px;margin-left:6px}
+  .dots{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);cursor:pointer;border:none;padding:0;transition:.15s}
+  .dot.active{background:var(--accent);transform:scale(1.25)}
+  .hint{text-align:center;color:var(--muted);font-size:11px;margin-top:14px;line-height:1.6}
+  .loading,.empty{text-align:center;color:var(--muted);padding:50px 20px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  @media(max-width:640px){h1{font-size:26px;letter-spacing:3px}.hide-m{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦁 LIONS 2026</h1>
+  <div class="sub">WEEKLY POINTS · NEWSLETTER DUTY</div>
+  <div class="bar">
+    <button class="primary" onclick="location.href='index.html'">🏈 Standings</button>
+    <button onclick="location.href='newsletters.html'">📰 Newsletters</button>
+    <span class="sub" id="status"></span>
+  </div>
+</header>
+
+<div class="stage" id="stage">
+  <div class="loading"><span class="spin"></span>Loading weekly results from ESPN…</div>
+</div>
+
+<script>
+const MIDSEASON_AFTER_WEEK = 9;
+const TEAMS = {
+  ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",
+  CLE:"Browns",DAL:"Cowboys",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",
+  JAX:"Jaguars",KC:"Chiefs",LV:"Raiders",LAC:"Chargers",LAR:"Rams",MIA:"Dolphins",MIN:"Vikings",
+  NE:"Patriots",NO:"Saints",NYG:"Giants",NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SF:"49ers",
+  SEA:"Seahawks",TB:"Buccaneers",TEN:"Titans",WSH:"Commanders"
+};
+const PLAYERS = [
+  { name:"Fleish",  initial:["BUF","TB","PIT"] },
+  { name:"Jakub",   initial:["SEA","ATL","NYG"] },
+  { name:"Ryan",    initial:["LAR","MIN","IND"] },
+  { name:"Wolf",    initial:["BAL","KC","CAR"] },
+  { name:"Mittman", initial:["DEN","DAL","LV"] },
+  { name:"Swid",    initial:["PHI","HOU","NYJ"] },
+  { name:"Spence",  initial:["SF","JAX","WSH"] },
+  { name:"Jake",    initial:["GB","NE","NO"] },
+  { name:"Andy",    initial:["CHI","LAC","ARI"] },
+  { name:"James",   initial:["DET","CIN","TEN"] },
+];
+const AVA = n => `avatars/${n.toLowerCase()}.jpg`;
+
+let state={coachAbbr:"",mvpAbbr:"",qbPlayer:"",newsletterOwner:"",midseason:{}};
+let authors=new Set();          // players who've already written a newsletter
+let games={};                   // abbr -> [{stype,week,won,tie,isSB}]
+let weeks=[];                   // sorted list of week keys present
+let idx=0;
+
+function ownedAbbrs(){
+  const s=new Set();
+  PLAYERS.forEach(p=>{ p.initial.forEach(a=>s.add(a)); (state.midseason[p.name]||[]).forEach(a=>a&&s.add(a)); });
+  return [...s];
+}
+function avatarCell(name){
+  const initials=name.slice(0,2).toUpperCase();
+  return `<img src="${AVA(name)}" alt="${name}" onerror="this.outerHTML='<span class=&quot;badge&quot;>${initials}</span>'"/>`;
+}
+function avatarBig(name){
+  const initials=name.slice(0,2).toUpperCase();
+  return `<img class="ava" src="${AVA(name)}" alt="${name}" onerror="this.outerHTML='<span class=&quot;badge&quot;>${initials}</span>'"/>`;
+}
+
+async function fetchTeam(abbr){
+  const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${abbr}/schedule`);
+  if(!r.ok) throw new Error(abbr);
+  const d=await r.json();
+  const list=[];
+  for(const ev of (d.events||[])){
+    const stype=ev.seasonType?.type, wk=ev.week?.number||0;
+    const comp=(ev.competitions||[])[0]; if(!comp) continue;
+    const me=(comp.competitors||[]).find(c=>c.team?.abbreviation===abbr); if(!me) continue;
+    if(comp.status?.type?.state!=='post') continue;      // finished only
+    const won=me.winner===true;
+    const tie=comp.status?.type?.completed && !comp.competitors.some(c=>c.winner===true);
+    const nm=(ev.name||"")+" "+(comp.notes?.map(n=>n.headline).join(" ")||"");
+    list.push({stype,week:wk,won,tie,isSB:/super bowl/i.test(nm)});
+  }
+  return list;
+}
+
+// week key: reg season -> "R{n}", postseason -> "P{n}"
+function weekKey(g){ return (g.stype===3?"P":"R")+g.week; }
+function weekLabel(k){
+  const n=+k.slice(1);
+  if(k[0]==='R') return `Week ${n}`;
+  return ["","Wild Card","Divisional","Conf. Champ","Pro Bowl","Super Bowl"][n] || `Playoff ${n}`;
+}
+
+// points a player earns for a given week key
+function pointsForWeek(p, key){
+  let pts=0; const detail=[];
+  const own=[
+    ...p.initial.map(a=>({a,mid:false})),
+    ...((state.midseason[p.name]||[]).filter(Boolean).map(a=>({a,mid:true})))
+  ];
+  for(const {a,mid} of own){
+    for(const g of (games[a]||[])){
+      if(weekKey(g)!==key) continue;
+      if(g.stype===2){
+        if(mid && g.week<=MIDSEASON_AFTER_WEEK) continue;   // midseason teams don't count pre-cut
+        if(g.won){ pts+=1; detail.push(TEAMS[a]||a); }
+      } else if(g.stype===3){
+        if(g.isSB){ pts+=3; detail.push((TEAMS[a]||a)+" SB berth"); }   // reaching SB
+        if(g.won){ pts+= g.isSB?5:2; detail.push((TEAMS[a]||a)+(g.isSB?" won SB":" playoff W")); }
+      }
+    }
+  }
+  return {pts, detail};
+}
+
+async function load(){
+  // settings + newsletter authors (best-effort)
+  try{ const d=await (await fetch(`data.json?t=${Date.now()}`)).json(); state=Object.assign(state,d); }catch(e){}
+  try{ const d=await (await fetch(`newsletters.json?t=${Date.now()}`)).json();
+       (d.newsletters||[]).forEach(n=>n.author&&authors.add(n.author)); }catch(e){}
+
+  const abbrs=ownedAbbrs();
+  const res=await Promise.allSettled(abbrs.map(fetchTeam));
+  res.forEach((r,i)=>{ if(r.status==='fulfilled') games[abbrs[i]]=r.value; });
+
+  // which weeks exist (any finished game)
+  const set=new Set();
+  Object.values(games).forEach(gs=>gs.forEach(g=>set.add(weekKey(g))));
+  weeks=[...set].sort((a,b)=>{
+    const rank=k=>(k[0]==='R'?0:100)+(+k.slice(1)); return rank(a)-rank(b);
+  });
+  idx=weeks.length-1;   // default to latest week
+  render();
+}
+
+function render(){
+  const stage=document.getElementById('stage');
+  if(!weeks.length){ stage.innerHTML=`<div class="empty">No finished games yet this season. 🏈</div>`; return; }
+  const key=weeks[idx];
+
+  // score everyone this week
+  const rows=PLAYERS.map(p=>{ const w=pointsForWeek(p,key); return {name:p.name, pts:w.pts, detail:w.detail}; });
+  rows.sort((a,b)=> a.pts-b.pts || a.name.localeCompare(b.name));   // lowest first
+
+  // on-call = lowest weekly points among players who haven't written yet
+  // (rows already sorted lowest-first, ties broken alphabetically)
+  const onCall = rows.find(r=>!authors.has(r.name)) || null;
+
+  stage.innerHTML=`
+    <div class="nav">
+      <button class="arrow" id="prev">‹</button>
+      <div class="weekpill">Showing<b>${weekLabel(key)}</b></div>
+      <button class="arrow" id="next">›</button>
+    </div>
+    ${onCall?`<div class="oncall">
+      ${avatarBig(onCall.name)}
+      <div class="txt">On the hook for the newsletter<br><b>${onCall.name}</b> — lowest points (${onCall.pts}) who hasn't written yet</div>
+    </div>`:`<div class="oncall"><div class="txt">Everyone has written a newsletter — cycle complete. 🎉</div></div>`}
+    <table>
+      <thead><tr><th class="rank">#</th><th>Player</th><th class="hide-m">Wins this week</th><th style="text-align:right">Pts</th></tr></thead>
+      <tbody>
+        ${rows.map((r,i)=>`
+          <tr class="${r.name===onCall?.name?'low':''}">
+            <td class="rank">${i+1}</td>
+            <td><div class="pcell">${avatarCell(r.name)}<span class="pname">${r.name}${authors.has(r.name)?'<span class="wrote">wrote</span>':''}</span></div></td>
+            <td class="hide-m wins">${r.detail.length?r.detail.join(", "):'—'}</td>
+            <td class="wpts">${r.pts}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="dots">${weeks.map((k,i)=>`<button class="dot ${i===idx?'active':''}" data-i="${i}" title="${weekLabel(k)}"></button>`).join('')}</div>
+    <div class="hint">Lowest weekly total writes the next newsletter (skipping anyone who's already gone).<br>Season-long bonuses (coach fired, MVP, hottest QB) aren't shown here — this is win points only. Swipe / ← → to change weeks.</div>`;
+
+  document.getElementById('prev').disabled=idx===0;
+  document.getElementById('next').disabled=idx===weeks.length-1;
+  document.getElementById('prev').onclick=()=>go(idx-1);
+  document.getElementById('next').onclick=()=>go(idx+1);
+  document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>go(+d.dataset.i));
+  document.getElementById('status').textContent=`Updated ${new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`;
+}
+function go(i){ idx=Math.max(0,Math.min(i,weeks.length-1)); render(); }
+
+document.addEventListener('keydown',e=>{ if(e.key==='ArrowLeft')go(idx-1); else if(e.key==='ArrowRight')go(idx+1); });
+let x0=null,dx=0;
+document.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;dx=0;},{passive:true});
+document.addEventListener('touchmove', e=>{if(x0!=null)dx=e.touches[0].clientX-x0;},{passive:true});
+document.addEventListener('touchend', ()=>{ if(Math.abs(dx)>50)go(idx+(dx<0?1:-1)); x0=null; });
+
+load();
+</script>
+</body>
+</html>
