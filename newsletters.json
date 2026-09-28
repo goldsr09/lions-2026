@@ -1,6 +1,13 @@
 {
   "newsletters": [
     {
+      "week": 2,
+      "author": "Andy",
+      "title": "",
+      "date": "2026-09-23",
+      "body": "Andy's Week 2 newsletter — text coming soon."
+    },
+    {
       "week": 1,
       "author": "Jake",
       "title": "It's Good to Be Back",
