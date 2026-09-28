@@ -249,6 +249,8 @@ function avatarHTML(name, size){
 const defaultState = () => ({
   coachAbbr:"", mvpAbbr:"", qbPlayer:"",
   newsletterOwner:"",   // who's on the hook for this week's newsletter
+  penalties:{},         // playerName -> point adjustment (e.g. -1 for late newsletter)
+  excused:[],           // players skipped from newsletter on-call selection this week
   midseason:{}          // playerName -> [abbr,abbr,abbr]
 });
 let state = defaultState();
@@ -357,6 +359,10 @@ function computePlayer(p){
   if(state.coachAbbr && teams.some(t=>t.abbr===state.coachAbbr)){ bonus+=1; bnotes.push("Coach fired +1"); }
   if(state.mvpAbbr   && teams.some(t=>t.abbr===state.mvpAbbr)){   bonus+=2; bnotes.push("MVP +2"); }
   if(state.qbPlayer===p.name){ bonus+=5; bnotes.push("Hottest QB +5"); }
+
+  // penalties (e.g. late newsletter): state.penalties[name] = negative number
+  const pen=(state.penalties&&state.penalties[p.name])||0;
+  if(pen){ bonus+=pen; bnotes.push(`Penalty ${pen>0?'+':''}${pen}`); }
 
   return { name:p.name, teamRows, reg, po, sb, bonus, bnotes,
            total: reg+po+sb+bonus,

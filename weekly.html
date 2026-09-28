@@ -53,6 +53,7 @@
   .wpts{text-align:right;font-weight:800;font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums}
   tr.low td{background:rgba(200,162,74,.08)}
   .wrote{font-size:9px;text-transform:uppercase;letter-spacing:.5px;background:#203a2a;color:var(--win);border-radius:4px;padding:1px 5px;margin-left:6px}
+  .excused{font-size:9px;text-transform:uppercase;letter-spacing:.5px;background:#3a2a20;color:#e0a458;border-radius:4px;padding:1px 5px;margin-left:6px}
   .dots{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--line);cursor:pointer;border:none;padding:0;transition:.15s}
   .dot.active{background:var(--accent);transform:scale(1.25)}
@@ -109,7 +110,7 @@ function seededIndex(seed, n){
   return Math.abs(h)%n;
 }
 
-let state={coachAbbr:"",mvpAbbr:"",qbPlayer:"",newsletterOwner:"",midseason:{}};
+let state={coachAbbr:"",mvpAbbr:"",qbPlayer:"",newsletterOwner:"",penalties:{},excused:[],midseason:{}};
 let authors=new Set();          // players who've already written a newsletter
 let games={};                   // abbr -> [{stype,week,won,tie,isSB}]
 let weeks=[];                   // sorted list of week keys present
@@ -206,10 +207,11 @@ function render(){
   const rows=PLAYERS.map(p=>{ const w=pointsForWeek(p,key); return {name:p.name, pts:w.pts, detail:w.detail}; });
   rows.sort((a,b)=> a.pts-b.pts || a.name.localeCompare(b.name));   // lowest first
 
-  // on-call = lowest weekly points among players who haven't written yet.
-  // If several eligible players tie for the lowest, randomly pick one
-  // (seeded by the week so the choice is stable, not re-rolled each render).
-  const eligible=rows.filter(r=>!authors.has(r.name));
+  // on-call = lowest weekly points among players who haven't written yet
+  // and aren't excused this week. If several eligible players tie for the
+  // lowest, randomly pick one (seeded by week so it's stable, not re-rolled).
+  const excused=new Set(state.excused||[]);
+  const eligible=rows.filter(r=>!authors.has(r.name) && !excused.has(r.name));
   let onCall=null, tied=[];
   if(eligible.length){
     const lowest=Math.min(...eligible.map(r=>r.pts));
@@ -233,7 +235,7 @@ function render(){
         ${rows.map((r,i)=>`
           <tr class="${r.name===onCall?.name?'low':''}">
             <td class="rank">${i+1}</td>
-            <td><div class="pcell">${avatarCell(r.name)}<span class="pname">${r.name}${authors.has(r.name)?'<span class="wrote">wrote</span>':''}</span></div></td>
+            <td><div class="pcell">${avatarCell(r.name)}<span class="pname">${r.name}${authors.has(r.name)?'<span class="wrote">wrote</span>':''}${excused.has(r.name)?'<span class="excused">excused</span>':''}</span></div></td>
             <td class="hide-m wins">${r.detail.length?r.detail.join(", "):'—'}</td>
             <td class="wpts">${r.pts}</td>
           </tr>`).join('')}

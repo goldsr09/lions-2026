@@ -1,7 +1,9 @@
 {
-  "newsletterOwner": "Andy",
+  "newsletterOwner": "",
   "coachAbbr": "",
   "mvpAbbr": "",
   "qbPlayer": "",
+  "penalties": { "Andy": -1 },
+  "excused": ["Andy"],
   "midseason": {}
 }
