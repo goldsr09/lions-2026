@@ -178,11 +178,17 @@ function pointsForWeek(p, key){
   return {pts, detail};
 }
 
+let authorByWeek={};   // weekKey ("R1") -> author who wrote that week
+
 async function load(){
   // settings + newsletter authors (best-effort)
   try{ const d=await (await fetch(`data.json?t=${Date.now()}`)).json(); state=Object.assign(state,d); }catch(e){}
   try{ const d=await (await fetch(`newsletters.json?t=${Date.now()}`)).json();
-       (d.newsletters||[]).forEach(n=>n.author&&authors.add(n.author)); }catch(e){}
+       (d.newsletters||[]).forEach(n=>{
+         if(!n.author) return;
+         authors.add(n.author);                       // everyone who has written (excluded from future weeks)
+         if(n.week) authorByWeek["R"+n.week]=n.author; // the writer OF that specific week
+       }); }catch(e){}
 
   const abbrs=ownedAbbrs();
   const res=await Promise.allSettled(abbrs.map(fetchTeam));
@@ -207,16 +213,27 @@ function render(){
   const rows=PLAYERS.map(p=>{ const w=pointsForWeek(p,key); return {name:p.name, pts:w.pts, detail:w.detail}; });
   rows.sort((a,b)=> a.pts-b.pts || a.name.localeCompare(b.name));   // lowest first
 
-  // on-call = lowest weekly points among players who haven't written yet
-  // and aren't excused this week. If several eligible players tie for the
-  // lowest, randomly pick one (seeded by week so it's stable, not re-rolled).
+  // The writer for THIS week is whoever's on the hook that week.
+  // If a newsletter is already recorded for this week, that author IS the
+  // writer (historical fact). Otherwise, compute it: lowest weekly points
+  // among players who haven't written any prior week and aren't excused.
+  // Ties are broken by a seeded random pick (stable per week).
   const excused=new Set(state.excused||[]);
-  const eligible=rows.filter(r=>!authors.has(r.name) && !excused.has(r.name));
-  let onCall=null, tied=[];
-  if(eligible.length){
-    const lowest=Math.min(...eligible.map(r=>r.pts));
-    tied=eligible.filter(r=>r.pts===lowest);
-    onCall = tied.length===1 ? tied[0] : tied[seededIndex(key, tied.length)];
+  const recordedWriter=authorByWeek[key]||null;
+  let onCall=null, tied=[], isRecorded=false;
+  if(recordedWriter){
+    onCall=rows.find(r=>r.name===recordedWriter)||{name:recordedWriter,pts:0};
+    isRecorded=true;
+  } else {
+    // players who haven't written in any OTHER week already
+    const priorAuthors=new Set(Object.entries(authorByWeek)
+      .filter(([wk])=>wk!==key).map(([,a])=>a));
+    const eligible=rows.filter(r=>!priorAuthors.has(r.name) && !excused.has(r.name));
+    if(eligible.length){
+      const lowest=Math.min(...eligible.map(r=>r.pts));
+      tied=eligible.filter(r=>r.pts===lowest);
+      onCall = tied.length===1 ? tied[0] : tied[seededIndex(key, tied.length)];
+    }
   }
 
   stage.innerHTML=`
@@ -227,7 +244,7 @@ function render(){
     </div>
     ${onCall?`<div class="oncall">
       ${avatarBig(onCall.name)}
-      <div class="txt">On the hook for the newsletter<br><b>${onCall.name}</b> — lowest points (${onCall.pts}) who hasn't written yet${tied.length>1?`<br><span style="color:var(--accent)">🎲 randomly picked from a ${tied.length}-way tie: ${tied.map(t=>t.name).join(", ")}</span>`:''}</div>
+      <div class="txt">${isRecorded?'Wrote the newsletter this week':'On the hook for the newsletter'}<br><b>${onCall.name}</b>${isRecorded?` — lowest that week (${onCall.pts} pts)`:` — lowest points (${onCall.pts}) who hasn't written yet`}${tied.length>1?`<br><span style="color:var(--accent)">🎲 randomly picked from a ${tied.length}-way tie: ${tied.map(t=>t.name).join(", ")}</span>`:''}</div>
     </div>`:`<div class="oncall"><div class="txt">Everyone has written a newsletter — cycle complete. 🎉</div></div>`}
     <table>
       <thead><tr><th class="rank">#</th><th>Player</th><th class="hide-m">Wins this week</th><th style="text-align:right">Pts</th></tr></thead>
@@ -235,7 +252,7 @@ function render(){
         ${rows.map((r,i)=>`
           <tr class="${r.name===onCall?.name?'low':''}">
             <td class="rank">${i+1}</td>
-            <td><div class="pcell">${avatarCell(r.name)}<span class="pname">${r.name}${authors.has(r.name)?'<span class="wrote">wrote</span>':''}${excused.has(r.name)?'<span class="excused">excused</span>':''}</span></div></td>
+            <td><div class="pcell">${avatarCell(r.name)}<span class="pname">${r.name}${r.name===recordedWriter?'<span class="wrote">wrote</span>':''}${excused.has(r.name)?'<span class="excused">excused</span>':''}</span></div></td>
             <td class="hide-m wins">${r.detail.length?r.detail.join(", "):'—'}</td>
             <td class="wpts">${r.pts}</td>
           </tr>`).join('')}
